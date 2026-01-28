@@ -1,0 +1,13 @@
+filename,class,label,path
+1-47819-A-5.npy,cat,0,data\processed\cat\1-47819-A-5.npy
+1-34094-B-5.npy,cat,0,data\processed\cat\1-34094-B-5.npy
+4-161303-B-5.npy,cat,0,data\processed\cat\4-161303-B-5.npy
+5-9032-A-0.npy,dog,1,data\processed\dog\5-9032-A-0.npy
+4-207124-A-0.npy,dog,1,data\processed\dog\4-207124-A-0.npy
+5-172639-A-5.npy,cat,0,data\processed\cat\5-172639-A-5.npy
+2-69131-B-5.npy,cat,0,data\processed\cat\2-69131-B-5.npy
+3-146965-A-5.npy,cat,0,data\processed\cat\3-146965-A-5.npy
+3-163459-A-0.npy,dog,1,data\processed\dog\3-163459-A-0.npy
+3-180977-A-0.npy,dog,1,data\processed\dog\3-180977-A-0.npy
+2-117271-A-0.npy,dog,1,data\processed\dog\2-117271-A-0.npy
+3-155312-A-0.npy,dog,1,data\processed\dog\3-155312-A-0.npy
