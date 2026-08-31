@@ -57,6 +57,17 @@ def audio_to_melspec(
 
     return mel_spec_norm
 
+def find_wav_files(folder):
+    """
+    Ищет .wav файлы в папке (регистр расширения не важен).
+    В отличие от glob('*.wav') + glob('*.WAV'), не даёт
+    дубликатов на Windows.
+    """
+    folder = Path(folder)
+    return sorted(
+        p for p in folder.glob('*')
+        if p.is_file() and p.suffix.lower() == '.wav'
+    )
 
 def process_dataset(raw_dir=None, processed_dir=None, sr=None):
     """
@@ -91,7 +102,7 @@ def process_dataset(raw_dir=None, processed_dir=None, sr=None):
     for class_name in class_names:
         class_dir = raw_path / class_name
         (processed_path / class_name).mkdir(parents=True, exist_ok=True)
-        audio_files = list(class_dir.glob('*.wav')) + list(class_dir.glob('*.WAV'))
+        audio_files = find_wav_files(class_dir)
         print(f"\nОбработка класса '{class_name}': {len(audio_files)} файлов")
 
         for audio_file in tqdm(audio_files, desc=class_name):

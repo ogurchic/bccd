@@ -10,6 +10,7 @@ import numpy as np
 import torch
 from config import cfg
 from train import AudioClassifier
+from preprocessing import find_wav_files
 
 
 def load_model(model_path, device, num_classes=None):
@@ -111,7 +112,7 @@ def predict_folder(folder_path, model_path=None):
     class_names = load_class_names()
 
     folder = Path(folder_path)
-    audio_files = list(folder.glob("*.wav")) + list(folder.glob("*.WAV"))
+    audio_files = find_wav_files(folder)
 
     results = {}
     for audio_file in audio_files:
@@ -168,7 +169,7 @@ if __name__ == "__main__":
             print(f"  {cls:20}: {prob:.1f}%")
 
     elif input_path.is_dir():
-        audio_files = list(input_path.glob("*.wav")) + list(input_path.glob("*.WAV"))
+        audio_files = find_wav_files(input_path)
         if not audio_files:
             print(f"❌ В папке {input_path} нет .wav файлов")
             sys.exit(1)

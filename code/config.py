@@ -43,10 +43,10 @@ class TrainingConfig:
     """Параметры обучения."""
     batch_size: int = 512
     num_workers: int = 4 
-    learning_rate: float = 2e-3
+    learning_rate: float = 1e-3
     weight_decay: float = 1e-4
     num_epochs: int = 200
-    patience: int = 10
+    patience: int = 20
 
     use_scheduler: bool = True
     scheduler_patience: int = 5

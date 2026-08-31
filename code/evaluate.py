@@ -163,11 +163,19 @@ def evaluate_model(model_path, processed_dir=None, device=None):
 
     if len(errors) > 0:
         print("\n  Примеры ошибок:")
+        data_df = test_loader.dataset.data   # <- DataFrame датасета (порядок = порядку меток)
         for idx in errors[:10]:
             true_class = class_names[labels[idx]]
             pred_class = class_names[predictions[idx]]
             confidence = probabilities[idx][predictions[idx]]
-            print(f"    Пример {idx}: реально {true_class}, "
+             # Имя исходного файла
+            row = data_df.iloc[idx]
+            if 'source_path' in data_df.columns:
+                fname = Path(row['source_path']).name
+            else:
+                fname = row['filename']
+
+            print(f"    {fname}: реально {true_class}, "
                   f"предсказано {pred_class} (уверенность: {confidence:.1%})")
 
     return metrics

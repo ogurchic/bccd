@@ -14,6 +14,9 @@ import time
 import torch
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent / "code"))
+from preprocessing import find_wav_files
+
 # Добавляем код в PYTHONPATH
 PROJECT_ROOT = Path(__file__).parent
 CODE_DIR = PROJECT_ROOT / "code"
@@ -126,7 +129,7 @@ def check_data(raw_dir, processed_dir):
     print(f"Найдено классов: {len(class_dirs)}")
     total_files = 0
     for class_dir in class_dirs:
-        wav_files = list(class_dir.glob("*.wav")) + list(class_dir.glob("*.WAV"))
+        wav_files = find_wav_files(class_dir)
         total_files += len(wav_files)
         print(f"  {class_dir.name}: {len(wav_files)} файлов")
 
