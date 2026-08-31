@@ -12,7 +12,7 @@ from pathlib import Path
 @dataclass
 class AudioConfig:
     """Параметры обработки аудио и мел-спектрограмм."""
-    sample_rate: int = 16000          # ← Speech Commands использует 16kHz!
+    sample_rate: int = 16000          # ← Speech Commands использует 16kHz
     n_mels: int = 128
     n_fft: int = 1024                 # ← меньше для 16kHz
     hop_length: int = 256             # ← меньше для 16kHz
@@ -34,17 +34,18 @@ class ModelConfig:
     fc_dropout: float = 0.3
 
     class_names: List[str] = field(default_factory=lambda: [
-        'yes', 'no', 'up', 'down', 'left', 'right', 'stop', 'go', 'cat', 'dog'
+        'yes', 'no', 'up', 'down', 'left', 'right', 'stop', 'go', 'on', 'off'
     ])
 
 
 @dataclass
 class TrainingConfig:
     """Параметры обучения."""
-    batch_size: int = 32              # ← можно больше для 16kHz
-    learning_rate: float = 1e-3
+    batch_size: int = 512
+    num_workers: int = 4 
+    learning_rate: float = 2e-3
     weight_decay: float = 1e-4
-    num_epochs: int = 50
+    num_epochs: int = 200
     patience: int = 10
 
     use_scheduler: bool = True

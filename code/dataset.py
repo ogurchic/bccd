@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 import numpy as np
 import pandas as pd
@@ -72,14 +73,29 @@ class AudioDataset(Dataset):
         return spectrogram, label
 
 
-def create_dataloaders(processed_dir=None, batch_size=None):
+import os  # ← добавь в импорты наверху файла
+
+def create_dataloaders(processed_dir=None, batch_size=None, num_workers=None):
     """
     Создаёт DataLoader'ы для train/val/test.
-    На train включена аугментация (если cfg.training.use_augmentation).
+    
+    ИЗМЕНЕНИЯ для ускорения на GPU:
+    - num_workers > 0: данные читаются параллельно с диска, GPU не ждёт
+    - persistent_workers: воркеры не пересоздаются каждую эпоху
+    - prefetch_factor: воркеры заранее готовят следующие батчи
+    - pin_memory: быстрая передача на GPU
     """
     processed_dir = processed_dir or cfg.paths.processed_dir
     batch_size = batch_size or cfg.training.batch_size
     processed_path = Path(processed_dir)
+
+    use_cuda = torch.cuda.is_available()
+
+    # Автоподбор числа воркеров: половина ядер CPU, но не больше 8
+    if num_workers is None:
+        num_workers = getattr(cfg.training, 'num_workers', 0)
+        if num_workers == 0 and use_cuda:
+            num_workers = min(os.cpu_count() // 2, 8)
 
     train_dataset = AudioDataset(
         processed_path / 'train.csv',
@@ -88,33 +104,38 @@ def create_dataloaders(processed_dir=None, batch_size=None):
     val_dataset = AudioDataset(processed_path / 'val.csv', augment=False)
     test_dataset = AudioDataset(processed_path / 'test.csv', augment=False)
 
-    use_cuda = torch.cuda.is_available()
+    # Общие параметры для всех loader'ов
+    common_kwargs = dict(
+        num_workers=num_workers,
+        pin_memory=use_cuda,
+    )
+    if num_workers > 0:
+        common_kwargs['persistent_workers'] = True   # не убивать воркеров между эпохами
+        common_kwargs['prefetch_factor'] = 4         # предзагрузка 4 батчей на воркер
 
     train_loader = DataLoader(
         dataset=train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=0,
-        pin_memory=use_cuda,
-        drop_last=True,  # для стабильности при Mixup
+        drop_last=True,
+        **common_kwargs,
     )
     val_loader = DataLoader(
         dataset=val_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=0,
-        pin_memory=use_cuda,
+        **common_kwargs,
     )
     test_loader = DataLoader(
         dataset=test_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=0,
-        pin_memory=use_cuda,
+        **common_kwargs,
     )
 
-    return {'train': train_loader, 'val': val_loader, 'test': test_loader}
+    print(f"  DataLoader: batch_size={batch_size}, num_workers={num_workers}")
 
+    return {'train': train_loader, 'val': val_loader, 'test': test_loader}
 
 def check_dataloaders(loaders):
     """Проверяет корректность работы DataLoader'ов."""

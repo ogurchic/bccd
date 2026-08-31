@@ -2,9 +2,9 @@
 Скачивание и подготовка датасета Speech Commands v2.
 Источник: http://download.tensorflow.org/data/speech_commands_v0.02.tar.gz
 
-Использование:
-    python code/download_speech_commands.py
-    python code/download_speech_commands.py --classes 10  # только 10 команд
+Изменения:
+- Классы cat/dog заменены на on/off
+- Добавлена автоматическая балансировка (--balance)
 """
 import os
 import sys
@@ -28,11 +28,11 @@ ALL_CLASSES = [
     'wow', 'yes', 'zero'
 ]
 
-# Рекомендуемые 10 классов для учебного проекта
-RECOMMENDED_10 = ['yes', 'no', 'up', 'down', 'left', 'right', 'stop', 'go', 'cat', 'dog']
+# Рекомендуемые 10 классов для учебного проекта (заменены cat/dog на on/off)
+RECOMMENDED_10 = ['yes', 'no', 'up', 'down', 'left', 'right', 'stop', 'go', 'on', 'off']
 
-# Минимальный набор для быстрого старта
-QUICK_4 = ['yes', 'no', 'cat', 'dog']
+# Минимальный набор для быстрого старта (тоже on/off вместо cat/dog)
+QUICK_4 = ['yes', 'no', 'on', 'off']
 
 
 class DownloadProgressBar(tqdm):
@@ -82,7 +82,6 @@ def extract_dataset(archive_path, extract_dir):
     extract_path.mkdir(parents=True, exist_ok=True)
     
     with tarfile.open(archive_path, 'r:gz') as tar:
-        # Получаем список файлов для прогресс-бара
         members = tar.getmembers()
         total = len(members)
         
@@ -98,7 +97,7 @@ def extract_dataset(archive_path, extract_dir):
     return extract_path
 
 
-def prepare_subset(source_dir, target_dir, classes, max_files_per_class=None):
+def prepare_subset(source_dir, target_dir, classes, max_files_per_class=None, balance=False):
     """
     Копирует подмножество классов из полного датасета.
     
@@ -106,31 +105,54 @@ def prepare_subset(source_dir, target_dir, classes, max_files_per_class=None):
         source_dir: папка с распакованным датасетом
         target_dir: папка для подготовленных данных (data/raw)
         classes: список классов для копирования
-        max_files_per_class: макс. файлов на класс (для быстрого теста)
+        max_files_per_class: макс. файлов на класс
+        balance: если True, автоматически выбирает минимум среди классов
     """
     source_path = Path(source_dir)
     target_path = Path(target_dir)
     
+    # Подсчёт количества файлов в каждом классе
+    class_file_counts = {}
+    available_classes = []
+    for class_name in classes:
+        class_source = source_path / class_name
+        if class_source.exists():
+            wav_files = list(class_source.glob("*.wav"))
+            class_file_counts[class_name] = len(wav_files)
+            available_classes.append(class_name)
+        else:
+            print(f"  ⚠ Класс не найден в исходнике: {class_name}")
+    
+    if not available_classes:
+        print("  ✗ Не найдено ни одного доступного класса")
+        return 0
+    
+    print(f"\n📊 Количество файлов в исходном датасете:")
+    for cls, count in sorted(class_file_counts.items(), key=lambda x: -x[1]):
+        print(f"  {cls:10}: {count:,} файлов")
+    
+    # Автоматическая балансировка
+    if balance and max_files_per_class is None:
+        max_files_per_class = min(class_file_counts.values())
+        print(f"\n🎯 Автоматическая балансировка: {max_files_per_class:,} файлов на класс")
+    elif max_files_per_class:
+        print(f"\n🎯 Ограничение: {max_files_per_class:,} файлов на класс")
+    else:
+        print(f"\n🎯 Балансировка отключена, копируются все файлы")
+    
     print(f"\nПодготовка подмножества датасета:")
     print(f"  Источник: {source_path}")
     print(f"  Назначение: {target_path}")
-    print(f"  Классы ({len(classes)}): {classes}")
-    if max_files_per_class:
-        print(f"  Макс. файлов на класс: {max_files_per_class}")
+    print(f"  Классы ({len(available_classes)}): {available_classes}")
     
     total_copied = 0
     
-    for class_name in classes:
+    for class_name in available_classes:
         class_source = source_path / class_name
         class_target = target_path / class_name
-        
-        if not class_source.exists():
-            print(f"  ⚠ Класс не найден: {class_name}")
-            continue
-        
         class_target.mkdir(parents=True, exist_ok=True)
         
-        wav_files = list(class_source.glob("*.wav"))
+        wav_files = sorted(list(class_source.glob("*.wav")))
         if max_files_per_class:
             wav_files = wav_files[:max_files_per_class]
         
@@ -166,10 +188,9 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""
 Примеры:
-  python code/download_speech_commands.py                    # все 35 классов
-  python code/download_speech_commands.py --classes 10       # 10 рекомендуемых
-  python code/download_speech_commands.py --classes 4        # быстрый тест (4 класса)
-  python code/download_speech_commands.py --max-files 100    # по 100 файлов на класс
+  python code/install_speech_commands.py --balance       # 10 классов, балансировка
+  python code/install_speech_commands.py --classes 4     # 4 класса (быстрый тест)
+  python code/install_speech_commands.py --max-files 5000 # по 5000 файлов на класс
   
 Доступные классы ({len(ALL_CLASSES)}):
   {', '.join(ALL_CLASSES[:10])}...
@@ -178,7 +199,11 @@ def main():
     parser.add_argument('--classes', type=int, default=10, choices=[4, 10, 35],
                         help='Количество классов: 4, 10 или 35 (по умолчанию 10)')
     parser.add_argument('--max-files', type=int, default=None,
-                        help='Максимум файлов на класс (для быстрого теста)')
+                        help='Максимум файлов на класс (отключает балансировку)')
+    parser.add_argument('--balance', action='store_true', default=True,
+                        help='Балансировать классы (одинаковое количество, по умолчанию ВКЛ)')
+    parser.add_argument('--no-balance', dest='balance', action='store_false',
+                        help='Отключить балансировку (копировать все файлы)')
     parser.add_argument('--data-dir', type=str, default='data',
                         help='Базовая директория для данных')
     parser.add_argument('--keep-archive', action='store_true',
@@ -205,7 +230,8 @@ def main():
     print("=" * 60)
     print(f"Классов: {args.classes}")
     print(f"Классы: {classes}")
-    print(f"Макс. файлов на класс: {args.max_files or 'все'}")
+    print(f"Балансировка: {'ВКЛ' if args.balance else 'ВЫКЛ'}")
+    print(f"Макс. файлов на класс: {args.max_files or 'авто (балансировка)'}")
     print("=" * 60)
     
     # Шаг 1: Скачивание
@@ -214,8 +240,12 @@ def main():
     # Шаг 2: Распаковка
     extract_dataset(archive_path, extract_dir)
     
-    # Шаг 3: Подготовка подмножества
-    total = prepare_subset(extract_dir, raw_dir, classes, args.max_files)
+    # Шаг 3: Подготовка подмножества с балансировкой
+    total = prepare_subset(
+        extract_dir, raw_dir, classes,
+        max_files_per_class=args.max_files,
+        balance=args.balance,
+    )
     
     # Шаг 4: Очистка (опционально)
     if not args.keep_archive:
@@ -227,10 +257,6 @@ def main():
     print(f"Данные подготовлены в: {raw_dir}")
     print(f"Файлов: {total}")
     print(f"\nСледующие шаги:")
-    print(f"  1. python code/preprocessing.py")
-    print(f"  2. python code/split_data.py")
-    print(f"  3. python code/train.py")
-    print(f"\nИли запустите всё одной командой:")
     print(f"  python run_pipeline.py --full")
 
 

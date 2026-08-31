@@ -25,7 +25,7 @@ def load_model(model_path, device, num_classes=None):
     """Загружает обученную модель из checkpoint."""
     num_classes = num_classes if num_classes is not None else cfg.model.num_classes
     model = AudioClassifier(num_classes=num_classes)
-    state_dict = torch.load(model_path, map_location=device)
+    state_dict = torch.load(model_path, map_location=device, weights_only=True)
     model.load_state_dict(state_dict)
     model = model.to(device)
     model.eval()
