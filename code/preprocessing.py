@@ -13,6 +13,35 @@ from config import cfg
 from tqdm import tqdm
 
 
+def waveform_to_melspec(waveform, sr=None, n_mels=None, n_fft=None,
+                        hop_length=None, max_frames=None):
+    """Мел-спектрограмма из массива waveform (для live-режима)."""
+    sr = sr or cfg.audio.sample_rate
+    n_mels = n_mels or cfg.audio.n_mels
+    n_fft = n_fft or cfg.audio.n_fft
+    hop_length = hop_length or cfg.audio.hop_length
+    max_frames = max_frames or cfg.audio.max_frames
+
+    mel_spec = librosa.feature.melspectrogram(
+        y=waveform, sr=sr, n_mels=n_mels, n_fft=n_fft, hop_length=hop_length,
+    )
+    mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
+
+    spec_min = mel_spec_db.min()
+    spec_max = mel_spec_db.max()
+    if spec_max - spec_min > 1e-8:
+        mel_spec_norm = (mel_spec_db - spec_min) / (spec_max - spec_min)
+    else:
+        mel_spec_norm = np.zeros_like(mel_spec_db)
+
+    if mel_spec_norm.shape[1] > max_frames:
+        mel_spec_norm = mel_spec_norm[:, :max_frames]
+    elif mel_spec_norm.shape[1] < max_frames:
+        pad_width = max_frames - mel_spec_norm.shape[1]
+        mel_spec_norm = np.pad(mel_spec_norm, ((0, 0), (0, pad_width)),
+                               mode='constant')
+    return mel_spec_norm
+
 def audio_to_melspec(
     path,
     sr=None,
