@@ -7,4 +7,5 @@
 /__pycache__/
 code/__pycache__/
 /test/
+/checkpoints/
 live_detect_log.txt

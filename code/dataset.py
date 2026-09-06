@@ -72,9 +72,6 @@ class AudioDataset(Dataset):
         label = torch.tensor(label, dtype=torch.long)
         return spectrogram, label
 
-
-import os  # ← добавь в импорты наверху файла
-
 def create_dataloaders(processed_dir=None, batch_size=None, num_workers=None):
     """
     Создаёт DataLoader'ы для train/val/test.
