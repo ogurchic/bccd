@@ -3,3 +3,9 @@
 /1
 /plan.txt
 /pptx_text.txt
+/data/
+/__pycache__/
+code/__pycache__/
+/test/
+/checkpoints/
+live_detect_log.txt
